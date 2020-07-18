@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description:
+  CloudFormation Practice
+
+Parameters:
+  Env:
+    Description: Environment Name
+    Type: String
+    Default: "Practice-"
+
+Mappings:
+  Network:
+    VPC:
+      Cidr: "10.0.0.0/16"
+    Public1:
+      Cidr: "10.0.1.0/24"
+      Az: "ap-northeast-1a"
+    Public2:
+      Az: "ap-northeast-1d"
+      Cidr: "10.0.2.0/24"
+    Private1:
+      Az: "ap-northeast-1a"
+      Cidr: "10.0.11.0/24"
+    Private2:
+      Az: "ap-northeast-1d"
+      Cidr: "10.0.12.0/24"
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [Network, VPC, Cidr]
+      Tags: [ { Key: Name, Value: !Sub "${Env}VPC" } ]
+
+  #
+  # Publicサブネット
+  #   - インターネットに出られる。
+  #   - グローバルIPの自動割当が使用できる。
+  #
+
+  # Public1サブネットとPublic2サブネット共通
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !FindInMap [Network, Public1, Cidr]
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: True
+      AvailabilityZone: !FindInMap [Network, Public1, Az]
+      Tags: [ { Key: Name, Value: !Sub "${Env}PublicSubnet1" } ]
+
+  Public1RouteRableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !FindInMap [Network, Public2, Cidr]
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: True
+      AvailabilityZone: !FindInMap [Network, Public2, Az]
+      Tags: [ { Key: Name, Value: !Sub "${Env}PublicSubnet2" } ]
+
+  Public2RouteRableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags: [ { Key: Name, Value: !Sub "${Env}PublicRouteTable" } ]
+
+  PublicRouteTableAttachmentForInternet:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      GatewayId: !Ref InternetGateway
+      DestinationCidrBlock: "0.0.0.0/0"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [ { Key: Name, Value: !Sub "${Env}InternetGateway" } ]
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+
+  #
+  # Privateサブネット
+  #
+  Private1Subneet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !FindInMap [Network, Private1, Cidr]
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: False
+      AvailabilityZone: !FindInMap [Network, Private1, Az]
+      Tags: [ { Key: Name, Value: !Sub "${Env}PrivateSubnet1" } ]
+
+  Private1RouteRableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref Private1Subneet
+
+  Private2Subneet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !FindInMap [Network, Private2, Cidr]
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: False
+      AvailabilityZone: !FindInMap [Network, Private2, Az]
+      Tags: [ { Key: Name, Value: !Sub "${Env}PrivateSubnet2" } ]
+
+  Private2RouteRableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref Private2Subneet
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags: [ { Key: Name, Value: !Sub "${Env}PrivateRouteTable" } ]
+
+  #
+  # S3エンドポイントへのルーティング
+  #
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !Ref VPC
+      RouteTableIds:
+        - !Ref PublicRouteTable
+        - !Ref PrivateRouteTable
+
+
+
