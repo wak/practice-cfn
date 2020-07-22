@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description:
+  CloudFormation Practice
+
+Resources:
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+      Tags:
+        - Key: Name
+          Value: practice-stream
+
+  ConsumerLambdaEventMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt KinesisStream.Arn
+      FunctionName: !GetAtt ConsumerLambda.Arn
+      MaximumBatchingWindowInSeconds: 0
+      StartingPosition: LATEST
+
+  ConsumerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt ConsumerLambdaRole.Arn
+      Runtime: "nodejs12.x"
+      Code:
+        ZipFile: |
+          console.log('Loading function');
+
+          exports.handler = function(event, context) {
+              //console.log(JSON.stringify(event, null, 2));
+              event.Records.forEach(function(record) {
+                  // Kinesis data is base64 encoded so decode here
+                  var payload = Buffer.from(record.kinesis.data, 'base64').toString('ascii');
+                  console.log('Decoded payload:', payload);
+              });
+          };
+
+  ConsumerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole
+
+  ConsumerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ConsumerLambda}
+      RetentionInDays: 1
+
+Outputs:
+  KinesisStreamName:
+    Description: Kinesis Stream Name
+    Value: !Ref KinesisStream
+
+  KinesisStreamArn:
+    Description: Kinesis Stream
+    Value: !GetAtt KinesisStream.Arn
