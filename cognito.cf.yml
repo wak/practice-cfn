@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description:
+  CloudFormation Cognito and API Gateway practice
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      GenerateSecret: False
+
+  Api:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Practice REST API
+      Name: PracticeREST
+
+  ApiCognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: ApiCognitoAuthorizer
+      RestApiId: !Ref Api
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.token
+      ProviderARNs:
+        - !GetAtt UserPool.Arn
+
+  GetRoot:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !GetAtt Api.RootResourceId
+      RestApiId: !Ref Api
+      # AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiCognitoAuthorizer
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{ "statusCode": 200 }'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Content-Type: "'text/html'"
+            ResponseTemplates:
+              text/html: <html>hello</html>
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Content-Type: False
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: TestStage
+      RestApiId: !Ref Api
+      DeploymentId: !Ref ApiDeployment
+
+  ApiDeployment:
+    DependsOn:
+      - GetRoot
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref Api
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
