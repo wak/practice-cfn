@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description:
+  Part of web server using API Gateway
+
+Resources:
+  Api:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Practice REST API
+      Name: WebParts
+
+  GreedyResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref Api
+      ParentId: !GetAtt Api.RootResourceId
+      PathPart: "{proxy+}"
+
+  GetGreedy:
+    Type: AWS::ApiGateway::Method
+    DependsOn:
+      - ApiPermission
+    Properties:
+      HttpMethod: GET
+      RestApiId: !Ref Api
+      ResourceId: !Ref GreedyResource
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        # IntegrationHttpMethodは、POSTでないとだめらしい。
+        IntegrationHttpMethod: POST
+        Uri: !Join
+          - ""
+          - - !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/"
+            - !GetAtt Lambda.Arn
+            - "/invocations"
+
+  # 特に紐付けは必要なく、存在だけしていればいいらしい。
+  ApiPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt Lambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: TestStage
+      RestApiId: !Ref Api
+      DeploymentId: !Ref ApiDeployment
+
+  ApiDeployment:
+    DependsOn:
+      - GetGreedy
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref Api
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "python3.6"
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+            return {'statusCode': '200', 'body': '<html>%s</html>' % (repr(event))}
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Lambda}
+      RetentionInDays: 1

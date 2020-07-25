@@ -8,3 +8,6 @@ kinesis:
 
 cognito:
 	aws cloudformation deploy --stack-name practice-cognito --template-file cognito.cf.yml --no-execute-changeset
+
+webparts-api:
+	aws cloudformation deploy --stack-name $@ --template-file webparts-apigateway.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
