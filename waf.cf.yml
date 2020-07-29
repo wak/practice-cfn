@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description:
+  Web Application Firewall
+
+Resources:
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Scope: REGIONAL
+      DefaultAction:
+        Block: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: True
+        MetricName: PracticeWAF
+        SampledRequestsEnabled: True
+      Rules:
+        -
+
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Join
+        - ""
+        - - arn:aws:apigateway:region::/restapis/
+          - !ImportValue PracticeApiId
+          - /stages/TestStage
+      WebACLArn: !Ref WebACL
