@@ -15,6 +15,7 @@ Resources:
     Properties:
       RestApiId: !Ref Api
       ParentId: !GetAtt Api.RootResourceId
+      # GET / は、以下の指定では対象にならない。
       PathPart: "{proxy+}"
 
   GetGreedy:
@@ -27,6 +28,9 @@ Resources:
       ResourceId: !Ref GreedyResource
       AuthorizationType: NONE
       Integration:
+        # プロキシ統合タイプ
+        #   Lambda呼び出し時に引数にいろいろ入る。
+        #   また、Lamdaの戻り値を適切に解釈して、Content-Typeとか設定される。
         Type: AWS_PROXY
         # IntegrationHttpMethodは、POSTでないとだめらしい。
         IntegrationHttpMethod: POST
@@ -35,6 +39,39 @@ Resources:
           - - !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/"
             - !GetAtt Lambda.Arn
             - "/invocations"
+
+  ResourceHtml:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref Api
+      ParentId: !GetAtt Api.RootResourceId
+      PathPart: "ashtml"
+
+  GetHtml:
+    Type: AWS::ApiGateway::Method
+    DependsOn:
+      - ApiPermission
+    Properties:
+      HttpMethod: GET
+      RestApiId: !Ref Api
+      ResourceId: !Ref ResourceHtml
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Join
+          - ""
+          - - !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/"
+            - !GetAtt Lambda.Arn
+            - "/invocations"
+        # IntegrationResponsesがないと、Lambdaを呼び出したあとに失敗する。
+        #   Execution failed due to configuration error: No match for output mapping and no default output mapping configured. Endpoint Response Status Code: 200
+        IntegrationResponses:
+          - StatusCode: "200"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            text/html: "Empty"
 
   # 特に紐付けは必要なく、存在だけしていればいいらしい。
   ApiPermission:
@@ -66,8 +103,13 @@ Resources:
       Runtime: "python3.6"
       Code:
         ZipFile: |
+          import json
           def lambda_handler(event, context):
-            return {'statusCode': '200', 'body': '<html>%s</html>' % (repr(event))}
+            return {
+              'statusCode': '200',
+              'headers': { 'Content-Type': 'application/json' },
+              'body': json.dumps(event, indent=2)
+            }
 
   LambdaRole:
     Type: AWS::IAM::Role
