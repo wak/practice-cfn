@@ -140,3 +140,8 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${Lambda}
       RetentionInDays: 1
+
+Outputs:
+  PracticeApiId:
+    Value: !Ref Api
+    Export: { Name: PracticeApiId }

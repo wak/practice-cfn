@@ -1,13 +1,15 @@
 .PHONY: main kinesis cognito apigateway
 
+OPT := --no-fail-on-empty-changeset --no-execute-changeset
+
 infra:
-	aws cloudformation deploy --stack-name practice-$@ --template-file infra.cf.yml --no-execute-changeset
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file infra.cf.yml
 
 kinesis:
-	aws cloudformation deploy --stack-name practice-$@ --template-file kinesis.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file kinesis.cf.yml --capabilities CAPABILITY_NAMED_IAM
 
 cognito:
-	aws cloudformation deploy --stack-name practice-$@ --template-file cognito.cf.yml --no-execute-changeset
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file cognito.cf.yml
 
 apigateway:
-	aws cloudformation deploy --stack-name practive-$@ --template-file apigateway.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file apigateway.cf.yml --capabilities CAPABILITY_NAMED_IAM
