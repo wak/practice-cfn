@@ -1,13 +1,13 @@
-.PHONY: main kinesis cognito
+.PHONY: main kinesis cognito apigateway
 
-main:
-	aws cloudformation deploy --stack-name cfn-practice --template-file main.cf.yml --no-execute-changeset
+infra:
+	aws cloudformation deploy --stack-name practice-$@ --template-file infra.cf.yml --no-execute-changeset
 
 kinesis:
-	aws cloudformation deploy --stack-name practice-kinesis --template-file kinesis.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy --stack-name practice-$@ --template-file kinesis.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
 
 cognito:
-	aws cloudformation deploy --stack-name practice-cognito --template-file cognito.cf.yml --no-execute-changeset
+	aws cloudformation deploy --stack-name practice-$@ --template-file cognito.cf.yml --no-execute-changeset
 
-webparts-api:
-	aws cloudformation deploy --stack-name $@ --template-file webparts-apigateway.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
+apigateway:
+	aws cloudformation deploy --stack-name practive-$@ --template-file apigateway.cf.yml --no-execute-changeset --capabilities CAPABILITY_NAMED_IAM
