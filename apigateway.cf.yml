@@ -145,3 +145,7 @@ Outputs:
   PracticeApiId:
     Value: !Ref Api
     Export: { Name: PracticeApiId }
+
+  PracticeApiStageName:
+    Value: !Ref ApiStage
+    Export: { Name: PracticeApiStageName }

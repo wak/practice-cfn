@@ -12,17 +12,69 @@ Resources:
         Block: {}
       VisibilityConfig:
         CloudWatchMetricsEnabled: True
-        MetricName: PracticeWAF
+        # CloudWatchの 以下のメトリクスが作成される。
+        #   [AWS/WAFV2] > [Region=ap-northeast-1, Rule=SingleRuleTest, WebACL=...]
+        MetricName: PracticeWebACL1
+        # Sampledにすると、どこから、どのURIにアクセスがあり、どう処理したかが記録される。
         SampledRequestsEnabled: True
       Rules:
-        -
+        # HTTPリクエストヘッダ check == aabbcc のとき、Accept。
+        - Name: SingleRuleTest
+          Action: { Allow: {} }
+          Priority: 0
+          Statement:
+            ByteMatchStatement:
+              PositionalConstraint: EXACTLY
+              FieldToMatch: { SingleHeader: check }
+              SearchString: aabbcc
+              TextTransformations: [ { Priority: 0, Type: NONE} ]
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: True
+            MetricName: SingleRuleTest
+            SampledRequestsEnabled: True
+
+        # HTTPリクエストヘッダ and1 == aab && and2 == bcc のとき、Accept。
+        - Name: AndRuleTest
+          Priority: 1
+          Action: { Allow: {} }
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AndRuleTest
+          Statement:
+            AndStatement:
+              Statements:
+                - ByteMatchStatement:
+                    FieldToMatch: { SingleHeader: { Name: and1 } }
+                    PositionalConstraint: EXACTLY
+                    SearchString: aab
+                    TextTransformations: [ {Type: NONE, Priority: 0} ]
+                - ByteMatchStatement:
+                    FieldToMatch: { SingleHeader: { Name: and2 } }
+                    PositionalConstraint: EXACTLY
+                    SearchString: bcc
+                    TextTransformations: [ { Type: NONE, Priority: 0 } ]
 
   WebACLAssociation:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
       ResourceArn: !Join
         - ""
-        - - arn:aws:apigateway:region::/restapis/
+        - - 'arn:aws:apigateway:'
+          - !Ref AWS::Region
+          - ::/restapis/
           - !ImportValue PracticeApiId
-          - /stages/TestStage
-      WebACLArn: !Ref WebACL
+          - /stages/
+          - !ImportValue PracticeApiStageName
+      WebACLArn: !GetAtt WebACL.Arn
+
+Outputs:
+  Test:
+    Value: !Join
+      - ""
+      - - 'arn:aws:apigateway:'
+        - !Ref AWS::Region
+        - ::/restapis/
+        - !ImportValue PracticeApiId
+        - /stages/
+        - !ImportValue PracticeApiStageName
