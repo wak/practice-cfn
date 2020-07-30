@@ -55,6 +55,20 @@ Resources:
                     SearchString: bcc
                     TextTransformations: [ { Type: NONE, Priority: 0 } ]
 
+        # マネージドルール
+        - Name: AWS-AWSManagedRulesAdminProtectionRuleSet
+          Priority: 2
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAdminProtectionRuleSet
+          OverrideAction:
+            None: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: False
+            CloudWatchMetricsEnabled: False
+            MetricName: AWS-AWSManagedRulesAdminProtectionRuleSet
+
   WebACLAssociation:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
