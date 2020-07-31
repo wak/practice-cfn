@@ -3,13 +3,17 @@ AWSTemplateFormatVersion: 2010-09-09
 Description:
   Web Application Firewall
 
+Parameters:
+  MyIpAddress:
+    Type: String
+
 Resources:
   WebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
       Scope: REGIONAL
       DefaultAction:
-        Block: {}
+        Allow: {}
       VisibilityConfig:
         CloudWatchMetricsEnabled: True
         # CloudWatchの 以下のメトリクスが作成される。
@@ -20,7 +24,7 @@ Resources:
       Rules:
         # HTTPリクエストヘッダ check == aabbcc のとき、Accept。
         - Name: SingleRuleTest
-          Action: { Allow: {} }
+          Action: { Block: {} }
           Priority: 0
           Statement:
             ByteMatchStatement:
@@ -36,7 +40,7 @@ Resources:
         # HTTPリクエストヘッダ and1 == aab && and2 == bcc のとき、Accept。
         - Name: AndRuleTest
           Priority: 1
-          Action: { Allow: {} }
+          Action: { Block: {} }
           VisibilityConfig:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
@@ -54,10 +58,20 @@ Resources:
                     PositionalConstraint: EXACTLY
                     SearchString: bcc
                     TextTransformations: [ { Type: NONE, Priority: 0 } ]
+        - Name: IpSetTest
+          Action: { Count: {} }
+          Priority: 2
+          Statement:
+            IPSetReferenceStatement:
+              Arn: !GetAtt IPSet.Arn
+          VisibilityConfig:
+            SampledRequestsEnabled: False
+            CloudWatchMetricsEnabled: True
+            MetricName: IpSetTest
 
         # マネージドルール
         - Name: AWS-AWSManagedRulesAdminProtectionRuleSet
-          Priority: 2
+          Priority: 3
           Statement:
             ManagedRuleGroupStatement:
               VendorName: AWS
@@ -68,6 +82,18 @@ Resources:
             SampledRequestsEnabled: False
             CloudWatchMetricsEnabled: False
             MetricName: AWS-AWSManagedRulesAdminProtectionRuleSet
+
+        # My RuleGroup
+        - Name: RuleGroupTest
+          OverrideAction: { None: {} }
+          Priority: 4
+          Statement:
+            RuleGroupReferenceStatement:
+              Arn: !GetAtt RuleGroup.Arn
+          VisibilityConfig:
+            SampledRequestsEnabled: True
+            CloudWatchMetricsEnabled: True
+            MetricName: RuleGroupTest
 
   WebACLAssociation:
     Type: AWS::WAFv2::WebACLAssociation
@@ -81,6 +107,39 @@ Resources:
           - /stages/
           - !ImportValue PracticeApiStageName
       WebACLArn: !GetAtt WebACL.Arn
+
+  IPSet:
+    Type: AWS::WAFv2::IPSet
+    Properties:
+      Addresses:
+        - !Sub "${MyIpAddress}/32"
+      IPAddressVersion: IPV4
+      Scope: REGIONAL
+
+  RuleGroup:
+    Type: AWS::WAFv2::RuleGroup
+    Properties:
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: True
+        SampledRequestsEnabled: True
+        MetricName: PracticeRuleGroup
+      Capacity: 50
+      Scope: REGIONAL
+      Rules:
+        - Name: BlockMe
+          Priority: 0
+          Action: { Block: {} }
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: BlockMe
+          Statement:
+            ByteMatchStatement:
+              FieldToMatch: { QueryString: {} }
+              PositionalConstraint: CONTAINS
+              SearchString: blockme
+              TextTransformations:
+                - { Type: NONE, Priority: 0 }
 
 Outputs:
   Test:

@@ -1,4 +1,4 @@
 API Gateway V2
 WAF
-  - Rule groups
-  - IP制限
+  - Logging to Firehose
+Firehose
