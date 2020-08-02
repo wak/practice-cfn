@@ -2,8 +2,9 @@ API Gateway V2
 WAF
   - Logging to Firehose
 Firehose
+  - データ変換
 CloudFormation自体の挙動
-  Stack間依存関係
-  未使用のパラメータ
-  Stack in Stack
+  - Stack間依存関係
+  - 未使用のパラメータ
+  - Stack in Stack
 SAM
