@@ -8,6 +8,9 @@ infra:
 kinesis:
 	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file kinesis.cf.yml --capabilities CAPABILITY_NAMED_IAM
 
+kinesis-firehose:
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file kinesis-firehose.cf.yml --capabilities CAPABILITY_NAMED_IAM
+
 cognito:
 	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file cognito.cf.yml
 
