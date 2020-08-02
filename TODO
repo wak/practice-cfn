@@ -1,4 +1,5 @@
 API Gateway V2
+  - Web Socket
 WAF
   - Logging to Firehose
 Firehose

@@ -17,5 +17,8 @@ cognito:
 apigateway:
 	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file apigateway.cf.yml --capabilities CAPABILITY_NAMED_IAM
 
+apigatewayV2:
+	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file apigateway_v2.cf.yml --capabilities CAPABILITY_NAMED_IAM
+
 waf:
 	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file waf.cf.yml --capabilities CAPABILITY_NAMED_IAM --parameter-override MyIpAddress=`curl --silent https://ifconfig.me/`
