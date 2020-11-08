@@ -15,10 +15,16 @@ cognito:
 	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file cognito.cf.yml
 
 apigateway:
-	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file apigateway.cf.yml --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file apigateway.cf.yml --capabilities CAPABILITY_NAMED_IAM
 
 apigatewayV2:
-	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file apigateway_v2.cf.yml --capabilities CAPABILITY_NAMED_IAM
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file apigateway_v2.cf.yml --capabilities CAPABILITY_NAMED_IAM
 
 waf:
-	aws cloudformation deploy ${OPT} --stack-name practive-$@ --template-file waf.cf.yml --capabilities CAPABILITY_NAMED_IAM --parameter-override MyIpAddress=`curl --silent https://ifconfig.me/`
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file waf.cf.yml --capabilities CAPABILITY_NAMED_IAM --parameter-override MyIpAddress=`curl --silent https://ifconfig.me/`
+
+eks:
+	@if ! aws ec2 describe-key-pairs --key-name practice-eks > /dev/null; then \
+		echo Please make ec2 key pair first. ;\
+	fi
+	aws cloudformation deploy ${OPT} --stack-name practice-$@ --template-file eks.cf.yml --capabilities CAPABILITY_NAMED_IAM
