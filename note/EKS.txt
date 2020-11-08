@@ -1,0 +1,25 @@
+
+kubectl version --short --client
+aws eks --region ap-northeast-1 update-kubeconfig --name practice-eks-Cluster01
+
+kubectl cluster-info
+
+kubectl get all
+kubectl get service server-state-service
+
+git clone --depth=1 https://github.com/nginxinc/kubernetes-ingress.git
+cd kubernetes-ingress\deployments
+kubectl apply -f common/ns-and-sa.yaml
+kubectl apply -f common/default-server-secret.yaml
+kubectl apply -f common/nginx-config.yaml
+kubectl apply -f rbac/rbac.yaml
+kubectl apply -f deployment/nginx-ingress.yaml
+kubectl get pods --namespace=nginx-ingress
+
+NodePort
+   |
+Ingress
+   |--------------+
+Service       Service2
+   |              |
+  Pod            Pod
